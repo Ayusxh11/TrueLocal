@@ -1,0 +1,1631 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+// ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
+const tokens = {
+  colors: {
+    saffron: "#FF6B35",
+    deep: "#1A0A2E",
+    teal: "#00C9A7",
+    gold: "#FFD700",
+    cream: "#FFF8F0",
+    ink: "#0D0D0D",
+    muted: "#6B7280",
+    glass: "rgba(255,255,255,0.06)",
+    glassStrong: "rgba(255,255,255,0.12)",
+  },
+};
+
+// ─── SEED DATA ────────────────────────────────────────────────────────────────
+const LOCATIONS = [
+  { id: "church-street", name: "Church Street", emoji: "☕", tagline: "Cafés, Books & Live Music", color: "#FF6B35", bg: "from-orange-900 to-amber-800" },
+  { id: "lalbagh", name: "Lalbagh Botanical Garden", emoji: "🌸", tagline: "Botanical Tours & Bonsai", color: "#00C9A7", bg: "from-green-900 to-teal-800" },
+  { id: "cubbon-park", name: "Cubbon Park", emoji: "🌳", tagline: "Nature Walks & Heritage Trees", color: "#22C55E", bg: "from-green-900 to-emerald-800" },
+  { id: "bangalore-palace", name: "Bangalore Palace", emoji: "🏰", tagline: "Heritage Tours & Cultural Nights", color: "#8B5CF6", bg: "from-purple-900 to-violet-800" },
+  { id: "tipu-palace", name: "Tipu Sultan's Summer Palace", emoji: "⚔️", tagline: "History & Storytelling", color: "#F59E0B", bg: "from-yellow-900 to-amber-800" },
+  { id: "nandi-hills", name: "Nandi Hills", emoji: "🏔️", tagline: "Sunrise Tours & Paragliding", color: "#06B6D4", bg: "from-sky-900 to-blue-800" },
+  { id: "bannerghatta", name: "Bannerghatta National Park", emoji: "🐘", tagline: "Safaris & Conservation", color: "#84CC16", bg: "from-lime-900 to-green-800" },
+  { id: "commercial-street", name: "Commercial Street", emoji: "🛍️", tagline: "Artisan Trails & Shopping", color: "#EC4899", bg: "from-pink-900 to-rose-800" },
+  { id: "indiranagar", name: "Indiranagar", emoji: "🍺", tagline: "Craft Breweries & Micro-Events", color: "#F97316", bg: "from-orange-900 to-red-800" },
+  { id: "mg-road", name: "MG Road / Brigade Road", emoji: "🌃", tagline: "Rooftop Dining & City Skyline", color: "#A855F7", bg: "from-purple-900 to-indigo-800" },
+];
+
+const VENDORS = [
+  // Church Street
+  { id: "v1", locationId: "church-street", name: "Blossom Book House", category: "Bookstore", rating: 4.9, reviews: 847, verified: true, image: "📚", bio: "Bangalore's most beloved second-hand bookstore since 1969.", tags: ["books", "vintage", "culture"] },
+  { id: "v2", locationId: "church-street", name: "Koshy's", category: "Café", rating: 4.7, reviews: 1203, verified: true, image: "☕", bio: "Iconic 1940s Bangalore institution serving authentic filter coffee.", tags: ["coffee", "heritage", "food"] },
+  { id: "v3", locationId: "church-street", name: "The Church Street Social", category: "Bar & Music", rating: 4.6, reviews: 923, verified: true, image: "🎸", bio: "Live indie music every Friday & Saturday night.", tags: ["music", "nightlife", "food"] },
+  { id: "v4", locationId: "church-street", name: "Niharika Arts Studio", category: "Street Art", rating: 4.8, reviews: 312, verified: true, image: "🎨", bio: "Curated walking tours of Church Street's vibrant street art scene.", tags: ["art", "walking", "culture"] },
+  // Lalbagh
+  { id: "v5", locationId: "lalbagh", name: "Green Thumb Tours", category: "Botanical Guide", rating: 4.9, reviews: 456, verified: true, image: "🌿", bio: "Expert horticulturalists leading immersive garden experiences.", tags: ["botany", "guided", "nature"] },
+  { id: "v6", locationId: "lalbagh", name: "Bonsai Bangalore", category: "Workshop", rating: 4.8, reviews: 289, verified: true, image: "🎋", bio: "Master bonsai artist with 20 years of experience.", tags: ["workshop", "bonsai", "craft"] },
+  // Cubbon Park
+  { id: "v7", locationId: "cubbon-park", name: "Cubbon Naturalists Collective", category: "Nature Walk", rating: 4.7, reviews: 678, verified: true, image: "🦜", bio: "Weekend guided birdwatching and heritage tree walks.", tags: ["nature", "birds", "heritage"] },
+  { id: "v8", locationId: "cubbon-park", name: "Little Explorers", category: "Kids Program", rating: 4.9, reviews: 345, verified: true, image: "🌱", bio: "Nature-scout experiences designed for kids aged 6–14.", tags: ["kids", "education", "nature"] },
+  // Bangalore Palace
+  { id: "v9", locationId: "bangalore-palace", name: "Palace Heritage Tours", category: "Heritage Guide", rating: 4.8, reviews: 567, verified: true, image: "🏰", bio: "Certified heritage guides with deep Wodeyar dynasty expertise.", tags: ["heritage", "history", "architecture"] },
+  { id: "v10", locationId: "bangalore-palace", name: "Nocturne Classical Ensemble", category: "Performance", rating: 4.9, reviews: 234, verified: true, image: "🎼", bio: "Intimate classical concerts in palace courtyards.", tags: ["music", "classical", "evening"] },
+  // Tipu Sultan's Palace
+  { id: "v11", locationId: "tipu-palace", name: "The Storyteller's Guild", category: "History Tour", rating: 4.9, reviews: 412, verified: true, image: "📜", bio: "Immersive storytelling of Tipu Sultan's reign and battles.", tags: ["history", "storytelling", "education"] },
+  { id: "v12", locationId: "tipu-palace", name: "Miniature Art Collective", category: "Workshop", rating: 4.7, reviews: 198, verified: true, image: "🖌️", bio: "Traditional Mysore miniature painting workshops.", tags: ["art", "workshop", "traditional"] },
+  // Nandi Hills
+  { id: "v13", locationId: "nandi-hills", name: "Sky Riders Paragliding", category: "Adventure", rating: 4.8, reviews: 892, verified: true, image: "🪂", bio: "APPI-certified tandem paragliding with 10+ years safety record.", tags: ["adventure", "paragliding", "aerial"] },
+  { id: "v14", locationId: "nandi-hills", name: "Sunrise Trails Nandi", category: "Photography Tour", rating: 4.9, reviews: 567, verified: true, image: "📸", bio: "Pre-dawn guided sunrise photography with breakfast.", tags: ["photography", "sunrise", "nature"] },
+  // Bannerghatta
+  { id: "v15", locationId: "bannerghatta", name: "Wild Encounters Safari", category: "Safari", rating: 4.8, reviews: 1123, verified: true, image: "🐯", bio: "Expert naturalist-guided safaris through Bannerghatta reserve.", tags: ["safari", "wildlife", "nature"] },
+  { id: "v16", locationId: "bannerghatta", name: "Conservation Collective", category: "Volunteer", rating: 4.9, reviews: 234, verified: true, image: "🌿", bio: "Conservation volunteer experiences with wildlife biologists.", tags: ["conservation", "volunteer", "education"] },
+  // Commercial Street
+  { id: "v17", locationId: "commercial-street", name: "Artisan Trail Co.", category: "Shopping Guide", rating: 4.7, reviews: 445, verified: true, image: "🧵", bio: "Curated shopping trail through tailors, lamp-makers & jewellers.", tags: ["shopping", "artisan", "crafts"] },
+  { id: "v18", locationId: "commercial-street", name: "Thrift & Threads", category: "Thrift Store", rating: 4.6, reviews: 678, verified: true, image: "👗", bio: "Curated vintage and thrift finds from across Karnataka.", tags: ["thrift", "fashion", "vintage"] },
+  // Indiranagar
+  { id: "v19", locationId: "indiranagar", name: "Toit Brewpub", category: "Craft Brewery", rating: 4.8, reviews: 2341, verified: true, image: "🍺", bio: "Bangalore's iconic craft brewery with 15+ house brews.", tags: ["beer", "craft", "food"] },
+  { id: "v20", locationId: "indiranagar", name: "Indira Nagar Music Circuit", category: "Music Events", rating: 4.7, reviews: 567, verified: true, image: "🎵", bio: "Curated micro-gig bookings for local bands across Indiranagar venues.", tags: ["music", "gigs", "nightlife"] },
+  // MG Road
+  { id: "v21", locationId: "mg-road", name: "Skyline Dinners BLR", category: "Rooftop Dining", rating: 4.9, reviews: 789, verified: true, image: "🌃", bio: "Exclusive rooftop dining experiences with panoramic city views.", tags: ["dining", "rooftop", "premium"] },
+  { id: "v22", locationId: "mg-road", name: "UB City Concierge", category: "Luxury Experience", rating: 4.8, reviews: 456, verified: true, image: "💎", bio: "Curated luxury dining & pop-up events at UB City.", tags: ["luxury", "dining", "premium"] },
+];
+
+const LISTINGS = [
+  // Church Street
+  { id: "l1", vendorId: "v1", locationId: "church-street", title: "Vintage Book Hunt + Coffee", type: "experience", price: 299, studentPrice: 199, duration: "90 min", capacity: 8, slots: ["10:00", "14:00", "17:00"], addOns: [{name: "Signed copy", price: 400}, {name: "Evening live-reading", price: 150}], description: "Hunt for rare vintage books with a coffee expert guide, finishing with filter coffee.", tags: ["books", "coffee", "culture"], cancellation: "24h full refund" },
+  { id: "l2", vendorId: "v2", locationId: "church-street", title: "Espresso Masterclass", type: "experience", price: 599, studentPrice: 449, duration: "2 hours", capacity: 10, slots: ["09:00", "11:00", "15:00"], addOns: [{name: "Brewing kit", price: 799}], description: "Learn filter coffee art from Bangalore's oldest café. Pull perfect shots, learn origin stories.", tags: ["coffee", "masterclass"], cancellation: "48h full refund" },
+  { id: "l3", vendorId: "v3", locationId: "church-street", title: "Late-Night Open Mic Slot", type: "event", price: 399, studentPrice: 299, duration: "3 hours", capacity: 60, slots: ["21:00"], addOns: [{name: "Performer slot (5 min)", price: 0}], description: "Church Street's best open mic night. Live indie, folk, and spoken word.", tags: ["music", "nightlife"], cancellation: "6h full refund" },
+  { id: "l4", vendorId: "v4", locationId: "church-street", title: "Street Art Walking Tour", type: "experience", price: 499, studentPrice: 349, duration: "2.5 hours", capacity: 12, slots: ["08:00", "16:00"], addOns: [{name: "Photo print set", price: 250}], description: "Guided walking tour through Church Street's vibrant murals and street art installations.", tags: ["art", "walking"], cancellation: "24h full refund" },
+  // Lalbagh
+  { id: "l5", vendorId: "v5", locationId: "lalbagh", title: "Guided Horticulture Talk + Tour", type: "experience", price: 349, studentPrice: 249, duration: "2 hours", capacity: 15, slots: ["07:00", "09:00", "15:00"], addOns: [{name: "Plant sapling to take home", price: 150}], description: "Expert botanist guide through Lalbagh's 240-acre garden, including the famous Glass House.", tags: ["botany", "nature"], cancellation: "24h full refund", entryFee: 25 },
+  { id: "l6", vendorId: "v6", locationId: "lalbagh", title: "Bonsai Workshop", type: "experience", price: 1299, studentPrice: 999, duration: "3 hours", capacity: 6, slots: ["10:00", "14:00"], addOns: [{name: "Take your bonsai home", price: 500}], description: "Hands-on bonsai creation with master artist. Create your own bonsai tree to nurture.", tags: ["workshop", "craft"], cancellation: "48h full refund" },
+  // Cubbon Park
+  { id: "l7", vendorId: "v7", locationId: "cubbon-park", title: "Heritage Tree Walk", type: "experience", price: 200, studentPrice: 150, duration: "2 hours", capacity: 20, slots: ["07:00", "09:00"], addOns: [{name: "Bird ID audio guide", price: 99}], description: "Weekend guided walk through Cubbon Park's 200+ heritage trees with naturalist commentary.", tags: ["nature", "heritage"], cancellation: "24h full refund" },
+  { id: "l8", vendorId: "v8", locationId: "cubbon-park", title: "Kid Naturalist Program", type: "experience", price: 350, studentPrice: 350, duration: "2.5 hours", capacity: 15, slots: ["09:00", "11:00"], addOns: [{name: "Nature journal", price: 120}], description: "Nature-scout experience for kids: identify trees, spot birds, make leaf rubbings.", tags: ["kids", "education"], cancellation: "24h full refund" },
+  // Bangalore Palace
+  { id: "l9", vendorId: "v9", locationId: "bangalore-palace", title: "Audio-Guided Heritage Tour", type: "experience", price: 270, studentPrice: 200, duration: "90 min", capacity: 25, slots: ["10:00", "12:00", "14:00", "16:00"], addOns: [{name: "Photography permit", price: 200}], description: "Explore Bangalore Palace with certified heritage guides through Tudor-style architecture and royal artifacts.", tags: ["heritage", "history"], cancellation: "24h full refund" },
+  { id: "l10", vendorId: "v10", locationId: "bangalore-palace", title: "Evening Classical Concert", type: "event", price: 799, studentPrice: 549, duration: "2 hours", capacity: 40, slots: ["19:00"], addOns: [{name: "Front-row seating", price: 300}], description: "Intimate classical Carnatic and Hindustani music concert in the palace courtyard.", tags: ["music", "classical", "evening"], cancellation: "48h full refund" },
+  // Tipu Sultan's Palace
+  { id: "l11", vendorId: "v11", locationId: "tipu-palace", title: "History Storytelling Session", type: "experience", price: 199, studentPrice: 99, duration: "75 min", capacity: 20, slots: ["10:00", "13:00", "15:00"], addOns: [{name: "Historical map print", price: 150}], description: "Immersive narrated journey through Tipu Sultan's reign, battles, and palace secrets.", tags: ["history", "storytelling"], cancellation: "24h full refund", entryFee: 15 },
+  { id: "l12", vendorId: "v12", locationId: "tipu-palace", title: "Miniature Painting Workshop", type: "experience", price: 899, studentPrice: 649, duration: "3 hours", capacity: 8, slots: ["10:00", "14:00"], addOns: [{name: "Professional framing", price: 350}], description: "Create your own traditional Mysore miniature painting under expert guidance.", tags: ["art", "workshop"], cancellation: "48h full refund" },
+  // Nandi Hills
+  { id: "l13", vendorId: "v13", locationId: "nandi-hills", title: "Tandem Paragliding Flight", type: "adventure", price: 3500, studentPrice: 2999, duration: "20 min flight", capacity: 10, slots: ["06:30", "09:00", "11:00"], addOns: [{name: "GoPro footage", price: 500}, {name: "Professional photos", price: 300}], description: "APPI-certified tandem paragliding above Nandi Hills with breathtaking valley views.", tags: ["adventure", "paragliding"], cancellation: "Weather-dependent: full refund if cancelled by operator" },
+  { id: "l14", vendorId: "v14", locationId: "nandi-hills", title: "Sunrise Photography + Breakfast", type: "experience", price: 1199, studentPrice: 899, duration: "4 hours", capacity: 8, slots: ["05:00"], addOns: [{name: "Drone footage add-on", price: 800}], description: "Pre-dawn hike, professional photography guidance at sunrise, followed by local breakfast.", tags: ["photography", "sunrise"], cancellation: "48h full refund" },
+  // Bannerghatta
+  { id: "l15", vendorId: "v15", locationId: "bannerghatta", title: "Wildlife Safari + Conservation Talk", type: "experience", price: 650, studentPrice: 499, duration: "3 hours", capacity: 20, slots: ["07:00", "10:00", "14:00"], addOns: [{name: "Butterfly park visit", price: 200}], description: "Open vehicle safari with expert naturalist guide, followed by conservation biology talk.", tags: ["safari", "wildlife"], cancellation: "24h full refund" },
+  { id: "l16", vendorId: "v16", locationId: "bannerghatta", title: "Volunteer-for-a-Day Conservation", type: "experience", price: 799, studentPrice: 499, duration: "6 hours", capacity: 8, slots: ["08:00"], addOns: [{name: "Conservation certificate", price: 0}], description: "Work alongside wildlife biologists on real conservation projects. Morning to afternoon.", tags: ["conservation", "volunteer"], cancellation: "72h full refund" },
+  // Commercial Street
+  { id: "l17", vendorId: "v17", locationId: "commercial-street", title: "Artisan Trail: Tailor + Lamp-Maker + Jeweller", type: "experience", price: 599, studentPrice: 449, duration: "3 hours", capacity: 10, slots: ["10:00", "14:00"], addOns: [{name: "Custom garment deposit", price: 500}], description: "Curated trail through three artisan workshops with behind-the-scenes access and bargaining tips.", tags: ["artisan", "shopping"], cancellation: "24h full refund" },
+  { id: "l18", vendorId: "v18", locationId: "commercial-street", title: "Thrift & Vintage Shopping Tour", type: "experience", price: 399, studentPrice: 299, duration: "2 hours", capacity: 8, slots: ["11:00", "15:00"], addOns: [{name: "Personal styling session", price: 299}], description: "Guided thrift shopping with a personal stylist through Commercial Street's best stalls.", tags: ["thrift", "fashion"], cancellation: "24h full refund" },
+  // Indiranagar
+  { id: "l19", vendorId: "v19", locationId: "indiranagar", title: "Craft Brewery Tasting Flight + Brewer Chat", type: "experience", price: 799, studentPrice: 599, duration: "90 min", capacity: 12, slots: ["13:00", "16:00", "19:00"], addOns: [{name: "Take-home growler", price: 599}], description: "5-beer tasting flight with head brewer Q&A session at Toit's taproom.", tags: ["beer", "craft", "food"], minAge: 18 },
+  { id: "l20", vendorId: "v20", locationId: "indiranagar", title: "Micro-Gig: Local Band Ticket", type: "event", price: 349, studentPrice: 249, duration: "2.5 hours", capacity: 80, slots: ["20:00"], addOns: [{name: "Artist meet & greet", price: 200}], description: "Hand-curated local indie, jazz, and electronic gigs at intimate Indiranagar venues.", tags: ["music", "gigs"], cancellation: "6h full refund" },
+  // MG Road
+  { id: "l21", vendorId: "v21", locationId: "mg-road", title: "Skyline Rooftop Dinner", type: "experience", price: 2499, studentPrice: 1999, duration: "3 hours", capacity: 20, slots: ["19:00", "20:00"], addOns: [{name: "Sommelier wine pairing", price: 999}, {name: "Private table setup", price: 500}], description: "5-course dinner on Bangalore's finest rooftop with 270° city skyline views.", tags: ["dining", "rooftop", "premium"], cancellation: "48h full refund" },
+  { id: "l22", vendorId: "v22", locationId: "mg-road", title: "UB City Luxury Pop-Up Dinner", type: "event", price: 3999, studentPrice: 2999, duration: "3 hours", capacity: 30, slots: ["19:30"], addOns: [{name: "Chef's table experience", price: 1500}], description: "Exclusive pop-up dining at UB City's luxury atrium featuring guest chefs.", tags: ["luxury", "dining", "premium"], cancellation: "72h full refund" },
+];
+
+// ─── UTILITY FUNCTIONS ────────────────────────────────────────────────────────
+const fmt = (n) => `₹${n.toLocaleString("en-IN")}`;
+const getVendor = (id) => VENDORS.find(v => v.id === id);
+const getLocation = (id) => LOCATIONS.find(l => l.id === id);
+const getListingsByLocation = (lid) => LISTINGS.filter(l => l.locationId === lid);
+const getListingsByVendor = (vid) => LISTINGS.filter(l => l.vendorId === vid);
+
+// ─── CART STORE (in-memory) ───────────────────────────────────────────────────
+let cartStore = [];
+let cartListeners = [];
+const cartAPI = {
+  get: () => cartStore,
+  add: (item) => { cartStore = [...cartStore, { ...item, cartId: Date.now() + Math.random() }]; cartListeners.forEach(fn => fn(cartStore)); },
+  remove: (cartId) => { cartStore = cartStore.filter(i => i.cartId !== cartId); cartListeners.forEach(fn => fn(cartStore)); },
+  clear: () => { cartStore = []; cartListeners.forEach(fn => fn(cartStore)); },
+  subscribe: (fn) => { cartListeners.push(fn); return () => { cartListeners = cartListeners.filter(l => l !== fn); }; },
+  total: () => cartStore.reduce((s, i) => s + i.price + (i.addOns || []).reduce((a, x) => a + x.price, 0), 0),
+};
+
+// ─── HOOKS ────────────────────────────────────────────────────────────────────
+function useCart() {
+  const [cart, setCart] = useState(cartAPI.get());
+  useEffect(() => cartAPI.subscribe(setCart), []);
+  return { cart, add: cartAPI.add, remove: cartAPI.remove, clear: cartAPI.clear, total: cartAPI.total };
+}
+
+function useReduceMotion() {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduce(mq.matches);
+    mq.addEventListener("change", e => setReduce(e.matches));
+  }, []);
+  return reduce;
+}
+
+// ─── COMPONENTS ──────────────────────────────────────────────────────────────
+
+// Animated wrapper
+function Motion({ children, show = true, delay = 0, style = {} }) {
+  const reduce = useReduceMotion();
+  const [vis, setVis] = useState(!show);
+  useEffect(() => { if (show) { const t = setTimeout(() => setVis(true), delay); return () => clearTimeout(t); } }, [show, delay]);
+  if (reduce) return <div style={style}>{children}</div>;
+  return (
+    <div style={{
+      opacity: vis ? 1 : 0,
+      transform: vis ? "translateY(0)" : "translateY(16px)",
+      transition: `opacity 320ms cubic-bezier(.22,1,.36,1) ${delay}ms, transform 320ms cubic-bezier(.22,1,.36,1) ${delay}ms`,
+      ...style
+    }}>
+      {children}
+    </div>
+  );
+}
+
+// Star rating
+function Stars({ rating }) {
+  return (
+    <span style={{ color: "#FFD700", fontSize: 13 }}>
+      {"★".repeat(Math.round(rating))}{"☆".repeat(5 - Math.round(rating))}
+      <span style={{ color: "#9CA3AF", marginLeft: 4, fontSize: 12 }}>{rating}</span>
+    </span>
+  );
+}
+
+// Badge
+function Badge({ children, color = "#FF6B35" }) {
+  return <span style={{ background: color + "22", color, border: `1px solid ${color}44`, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, display: "inline-block" }}>{children}</span>;
+}
+
+// Verified badge
+function VerifiedBadge() {
+  return (
+    <span style={{ background: "#00C9A722", color: "#00C9A7", border: "1px solid #00C9A744", padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+      ✓ Verified
+    </span>
+  );
+}
+
+// Card
+function Card({ children, onClick, hover = true, style = {} }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 16,
+        overflow: "hidden",
+        cursor: onClick ? "pointer" : "default",
+        transition: "all 240ms cubic-bezier(.22,1,.36,1)",
+        transform: hover && hovered ? "translateY(-4px) scale(1.01)" : "none",
+        boxShadow: hover && hovered ? "0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,107,53,0.3)" : "0 4px 20px rgba(0,0,0,0.2)",
+        ...style
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Button
+function Btn({ children, onClick, variant = "primary", size = "md", disabled = false, style = {} }) {
+  const [pressed, setPressed] = useState(false);
+  const styles = {
+    primary: { background: "linear-gradient(135deg, #FF6B35, #FF8C5A)", color: "#fff", border: "none" },
+    secondary: { background: "rgba(255,255,255,0.08)", color: "#fff", border: "1px solid rgba(255,255,255,0.15)" },
+    teal: { background: "linear-gradient(135deg, #00C9A7, #00B894)", color: "#fff", border: "none" },
+    ghost: { background: "transparent", color: "#FF6B35", border: "1px solid #FF6B3544" },
+    danger: { background: "linear-gradient(135deg, #EF4444, #DC2626)", color: "#fff", border: "none" },
+  };
+  const sizes = { sm: { padding: "6px 14px", fontSize: 12 }, md: { padding: "10px 22px", fontSize: 14 }, lg: { padding: "14px 32px", fontSize: 16 } };
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onMouseLeave={() => setPressed(false)}
+      style={{
+        ...styles[variant], ...sizes[size],
+        borderRadius: 10, fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        transform: pressed ? "scale(0.96)" : "scale(1)",
+        transition: "all 150ms cubic-bezier(.22,1,.36,1)",
+        fontFamily: "inherit",
+        ...style
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Input
+function Input({ label, value, onChange, type = "text", placeholder = "" }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {label && <label style={{ display: "block", color: "#9CA3AF", fontSize: 12, fontWeight: 600, marginBottom: 6, letterSpacing: "0.05em" }}>{label.toUpperCase()}</label>}
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          width: "100%", padding: "10px 14px", background: "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "#fff",
+          fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+        }}
+      />
+    </div>
+  );
+}
+
+// Stepper
+function Stepper({ steps, current }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 28 }}>
+      {steps.map((s, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", flex: i < steps.length - 1 ? 1 : "none" }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+            background: i < current ? "#00C9A7" : i === current ? "#FF6B35" : "rgba(255,255,255,0.1)",
+            color: "#fff", fontSize: 13, fontWeight: 700, flexShrink: 0,
+            transition: "all 300ms ease", boxShadow: i === current ? "0 0 20px #FF6B3566" : "none"
+          }}>
+            {i < current ? "✓" : i + 1}
+          </div>
+          <span style={{ marginLeft: 8, fontSize: 12, color: i === current ? "#fff" : "#6B7280", fontWeight: i === current ? 700 : 400, whiteSpace: "nowrap" }}>{s}</span>
+          {i < steps.length - 1 && <div style={{ flex: 1, height: 1, background: i < current ? "#00C9A7" : "rgba(255,255,255,0.1)", margin: "0 12px", transition: "all 300ms ease" }} />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Modal
+function Modal({ open, onClose, children, title }) {
+  if (!open) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(8px)" }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <Motion show={open}>
+        <div style={{ background: "#1A0A2E", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, maxWidth: 560, width: "100%", maxHeight: "90vh", overflow: "auto", padding: 28 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <h2 style={{ margin: 0, fontSize: 20, fontFamily: "'Playfair Display', serif", color: "#fff" }}>{title}</h2>
+            <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#fff", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", fontSize: 16 }}>✕</button>
+          </div>
+          {children}
+        </div>
+      </Motion>
+    </div>
+  );
+}
+
+// Toast
+function Toast({ messages, removeToast }) {
+  return (
+    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 2000, display: "flex", flexDirection: "column", gap: 12 }}>
+      {messages.map(m => (
+        <Motion key={m.id} show delay={0}>
+          <div style={{ background: m.type === "success" ? "linear-gradient(135deg,#00C9A7,#00B894)" : m.type === "error" ? "linear-gradient(135deg,#EF4444,#DC2626)" : "linear-gradient(135deg,#FF6B35,#FF8C5A)", padding: "14px 20px", borderRadius: 12, color: "#fff", fontWeight: 600, fontSize: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.4)", minWidth: 260, display: "flex", alignItems: "center", gap: 10 }}>
+            <span>{m.type === "success" ? "✓" : m.type === "error" ? "✕" : "ℹ"}</span>
+            {m.text}
+          </div>
+        </Motion>
+      ))}
+    </div>
+  );
+}
+
+// ─── PAGES ────────────────────────────────────────────────────────────────────
+
+// HOME PAGE
+function HomePage({ nav }) {
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [studentMode, setStudentMode] = useState(false);
+  const [heroOffset, setHeroOffset] = useState(0);
+
+  useEffect(() => {
+    const handler = () => setHeroOffset(window.scrollY);
+    window.addEventListener("scroll", handler);
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!search.trim()) { setSearchResults([]); return; }
+    const q = search.toLowerCase();
+    const vendors = VENDORS.filter(v => v.name.toLowerCase().includes(q) || v.category.toLowerCase().includes(q) || v.tags.some(t => t.includes(q)));
+    const listings = LISTINGS.filter(l => l.title.toLowerCase().includes(q) || l.tags.some(t => t.includes(q)));
+    const locs = LOCATIONS.filter(l => l.name.toLowerCase().includes(q));
+    setSearchResults([...locs.map(l => ({ type: "location", data: l })), ...vendors.map(v => ({ type: "vendor", data: v })), ...listings.map(l => ({ type: "listing", data: l }))].slice(0, 8));
+  }, [search]);
+
+  return (
+    <div>
+      {/* Hero */}
+      <div style={{ position: "relative", minHeight: "92vh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+        {/* Parallax BG */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, #0D0521 0%, #1A0A2E 40%, #0D1B1E 100%)", transform: `translateY(${heroOffset * 0.3}px)` }} />
+        {/* Particle layer */}
+        <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,107,53,0.12) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(0,201,167,0.1) 0%, transparent 40%), radial-gradient(circle at 50% 80%, rgba(168,85,247,0.08) 0%, transparent 50%)`, transform: `translateY(${heroOffset * 0.15}px)` }} />
+        {/* Grid pattern */}
+        <div style={{ position: "absolute", inset: 0, backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`, backgroundSize: "60px 60px" }} />
+        
+        <div style={{ position: "relative", zIndex: 10, textAlign: "center", padding: "0 20px", maxWidth: 800, margin: "0 auto" }}>
+          <Motion show delay={0}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,107,53,0.15)", border: "1px solid rgba(255,107,53,0.3)", borderRadius: 100, padding: "6px 18px", marginBottom: 24 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FF6B35", animation: "pulse 2s infinite", display: "block" }} />
+              <span style={{ color: "#FF6B35", fontSize: 13, fontWeight: 600 }}>Live in Bengaluru — 22 Verified Vendors</span>
+            </div>
+          </Motion>
+          
+          <Motion show delay={80}>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(42px, 8vw, 80px)", fontWeight: 900, lineHeight: 1.05, margin: "0 0 20px", color: "#fff", letterSpacing: "-0.02em" }}>
+              Discover <em style={{ color: "#FF6B35", fontStyle: "italic" }}>Real</em><br />Bengaluru
+            </h1>
+          </Motion>
+
+          <Motion show delay={160}>
+            <p style={{ color: "#9CA3AF", fontSize: 18, marginBottom: 36, lineHeight: 1.6 }}>
+              Local guides, artisans, experiences & events — curated & community-verified
+            </p>
+          </Motion>
+
+          <Motion show delay={240}>
+            {/* Search */}
+            <div style={{ position: "relative", maxWidth: 560, margin: "0 auto 24px" }}>
+              <div style={{ display: "flex", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 14, overflow: "hidden", backdropFilter: "blur(12px)" }}>
+                <span style={{ padding: "14px 18px", color: "#9CA3AF", fontSize: 18 }}>🔍</span>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search experiences, guides, restaurants..."
+                  style={{ flex: 1, background: "none", border: "none", color: "#fff", fontSize: 16, outline: "none", fontFamily: "inherit", padding: "14px 0" }}
+                />
+                {search && <button onClick={() => setSearch("")} style={{ padding: "14px 16px", background: "none", border: "none", color: "#9CA3AF", cursor: "pointer", fontSize: 16 }}>✕</button>}
+              </div>
+              {/* Search Results Dropdown */}
+              {searchResults.length > 0 && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1A0A2E", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, marginTop: 8, zIndex: 100, overflow: "hidden" }}>
+                  {searchResults.map((r, i) => (
+                    <div key={i} onClick={() => { setSearch(""); nav(r.type === "location" ? { page: "location", locationId: r.data.id } : r.type === "vendor" ? { page: "vendor", vendorId: r.data.id } : { page: "listing", listingId: r.data.id }); }} style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, transition: "background 150ms" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,107,53,0.1)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <span style={{ fontSize: 20 }}>{r.type === "location" ? r.data.emoji : r.type === "vendor" ? r.data.image : "🎫"}</span>
+                      <div style={{ textAlign: "left" }}>
+                        <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>{r.type === "location" ? r.data.name : r.type === "vendor" ? r.data.name : r.data.title}</div>
+                        <div style={{ color: "#9CA3AF", fontSize: 12 }}>{r.type === "location" ? "📍 Area" : r.type === "vendor" ? r.data.category : fmt(r.data.price)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Student toggle */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 32 }}>
+              <span style={{ color: "#9CA3AF", fontSize: 14 }}>Student mode</span>
+              <div onClick={() => setStudentMode(!studentMode)} style={{ width: 44, height: 24, background: studentMode ? "#00C9A7" : "rgba(255,255,255,0.1)", borderRadius: 12, position: "relative", cursor: "pointer", transition: "background 200ms" }}>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: studentMode ? 23 : 3, transition: "left 200ms", boxShadow: "0 2px 6px rgba(0,0,0,0.3)" }} />
+              </div>
+              {studentMode && <Badge color="#00C9A7">20% off all prices!</Badge>}
+            </div>
+          </Motion>
+
+          <Motion show delay={320}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+              {["Experiences", "Guided Tours", "Food & Drinks", "Adventures", "Workshops"].map(tag => (
+                <button key={tag} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 100, padding: "8px 16px", color: "#D1D5DB", fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms" }} onMouseEnter={e => { e.target.style.background = "rgba(255,107,53,0.15)"; e.target.style.borderColor = "rgba(255,107,53,0.4)"; e.target.style.color = "#FF6B35"; }} onMouseLeave={e => { e.target.style.background = "rgba(255,255,255,0.06)"; e.target.style.borderColor = "rgba(255,255,255,0.12)"; e.target.style.color = "#D1D5DB"; }}>
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </Motion>
+        </div>
+
+        {/* Scroll indicator */}
+        <div style={{ position: "absolute", bottom: 32, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, color: "#6B7280" }}>
+          <span style={{ fontSize: 12 }}>Explore</span>
+          <div style={{ width: 1, height: 40, background: "linear-gradient(to bottom, #FF6B35, transparent)" }} />
+        </div>
+      </div>
+
+      {/* Locations Grid */}
+      <div style={{ padding: "80px 24px", maxWidth: 1200, margin: "0 auto" }}>
+        <Motion show>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 48 }}>
+            <div>
+              <p style={{ color: "#FF6B35", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 8px" }}>10 Flagship Destinations</p>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px, 5vw, 48px)", fontWeight: 900, margin: 0, color: "#fff" }}>Explore Bengaluru</h2>
+            </div>
+          </div>
+        </Motion>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+          {LOCATIONS.map((loc, i) => (
+            <Motion key={loc.id} show delay={i * 50}>
+              <Card onClick={() => nav({ page: "location", locationId: loc.id })}>
+                <div style={{ padding: 0 }}>
+                  <div style={{ background: `linear-gradient(135deg, ${loc.color}33, ${loc.color}11)`, padding: "32px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)", position: "relative", overflow: "hidden" }}>
+                    <div style={{ position: "absolute", right: -10, top: -10, fontSize: 80, opacity: 0.15 }}>{loc.emoji}</div>
+                    <div style={{ fontSize: 36, marginBottom: 12 }}>{loc.emoji}</div>
+                    <h3 style={{ margin: "0 0 6px", color: "#fff", fontSize: 17, fontWeight: 800 }}>{loc.name}</h3>
+                    <p style={{ margin: 0, color: "#9CA3AF", fontSize: 13 }}>{loc.tagline}</p>
+                  </div>
+                  <div style={{ padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "#6B7280", fontSize: 12 }}>{getListingsByLocation(loc.id).length} experiences</span>
+                    <span style={{ color: loc.color, fontSize: 13, fontWeight: 600 }}>Explore →</span>
+                  </div>
+                </div>
+              </Card>
+            </Motion>
+          ))}
+        </div>
+      </div>
+
+      {/* Featured Vendors */}
+      <div style={{ padding: "0 24px 80px", maxWidth: 1200, margin: "0 auto" }}>
+        <Motion show>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(24px,4vw,40px)", fontWeight: 900, margin: "0 0 32px", color: "#fff" }}>
+            🏅 Top Verified Vendors
+          </h2>
+        </Motion>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+          {VENDORS.slice(0, 6).map((v, i) => (
+            <Motion key={v.id} show delay={i * 60}>
+              <Card onClick={() => nav({ page: "vendor", vendorId: v.id })}>
+                <div style={{ padding: 20 }}>
+                  <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 12 }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(255,107,53,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{v.image}</div>
+                    <div>
+                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{v.name}</div>
+                      <Badge>{v.category}</Badge>
+                    </div>
+                  </div>
+                  <p style={{ color: "#9CA3AF", fontSize: 13, margin: "0 0 12px", lineHeight: 1.5 }}>{v.bio}</p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Stars rating={v.rating} />
+                    {v.verified && <VerifiedBadge />}
+                  </div>
+                </div>
+              </Card>
+            </Motion>
+          ))}
+        </div>
+      </div>
+
+      {/* Student CTA */}
+      <Motion show>
+        <div style={{ margin: "0 24px 80px", maxWidth: 1200, marginLeft: "auto", marginRight: "auto" }}>
+          <div style={{ background: "linear-gradient(135deg, rgba(0,201,167,0.15), rgba(255,107,53,0.1))", border: "1px solid rgba(0,201,167,0.3)", borderRadius: 20, padding: "40px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 24 }}>
+            <div>
+              <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900, margin: "0 0 8px", color: "#fff" }}>Students get 20% off 🎓</h3>
+              <p style={{ color: "#9CA3AF", margin: 0, fontSize: 15 }}>Upload your student ID and unlock exclusive discounts on every experience.</p>
+            </div>
+            <Btn variant="teal" size="lg" onClick={() => nav({ page: "student" })}>Verify Student ID</Btn>
+          </div>
+        </div>
+      </Motion>
+    </div>
+  );
+}
+
+// LOCATION PAGE
+function LocationPage({ locationId, nav, addToast, studentMode }) {
+  const loc = getLocation(locationId);
+  const listings = getListingsByLocation(locationId);
+  const vendors = [...new Set(listings.map(l => l.vendorId))].map(getVendor).filter(Boolean);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const categories = ["all", ...new Set(vendors.map(v => v.category))];
+
+  if (!loc) return <div style={{ color: "#fff", padding: 40 }}>Location not found</div>;
+
+  const filteredListings = activeCategory === "all" ? listings : listings.filter(l => {
+    const v = getVendor(l.vendorId);
+    return v?.category === activeCategory;
+  });
+
+  return (
+    <div>
+      {/* Hero */}
+      <div style={{ background: `linear-gradient(135deg, #0D0521, #1A0A2E)`, padding: "80px 24px 60px", position: "relative", overflow: "hidden", textAlign: "center" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle at 50% 50%, ${loc.color}22 0%, transparent 70%)` }} />
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <Motion show>
+            <div style={{ fontSize: 64, marginBottom: 16 }}>{loc.emoji}</div>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(32px, 6vw, 60px)", fontWeight: 900, color: "#fff", margin: "0 0 12px" }}>{loc.name}</h1>
+            <p style={{ color: "#9CA3AF", fontSize: 18, margin: "0 0 24px" }}>{loc.tagline}</p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <Badge color={loc.color}>{listings.length} Experiences</Badge>
+              <Badge color="#00C9A7">{vendors.length} Verified Vendors</Badge>
+            </div>
+          </Motion>
+        </div>
+      </div>
+
+      {/* Church Street Itinerary Builder */}
+      {locationId === "church-street" && (
+        <Motion show>
+          <div style={{ background: "rgba(255,107,53,0.08)", borderTop: "1px solid rgba(255,107,53,0.2)", borderBottom: "1px solid rgba(255,107,53,0.2)", padding: "24px", textAlign: "center" }}>
+            <h3 style={{ color: "#FF6B35", fontFamily: "'Playfair Display', serif", fontSize: 22, margin: "0 0 8px" }}>✨ Plan My Church Street Day</h3>
+            <p style={{ color: "#9CA3AF", margin: "0 0 16px", fontSize: 14 }}>Build a custom day itinerary with drag & drop</p>
+            <Btn onClick={() => nav({ page: "itinerary", locationId: "church-street" })}>Launch Itinerary Builder</Btn>
+          </div>
+        </Motion>
+      )}
+
+      {/* Categories */}
+      <div style={{ padding: "32px 24px 0", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {categories.map(cat => (
+            <button key={cat} onClick={() => setActiveCategory(cat)} style={{ padding: "8px 18px", borderRadius: 100, border: `1px solid ${activeCategory === cat ? loc.color : "rgba(255,255,255,0.12)"}`, background: activeCategory === cat ? `${loc.color}22` : "transparent", color: activeCategory === cat ? loc.color : "#9CA3AF", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, transition: "all 200ms", textTransform: "capitalize" }}>
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Listings */}
+      <div style={{ padding: "32px 24px 80px", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
+          {filteredListings.map((listing, i) => {
+            const vendor = getVendor(listing.vendorId);
+            return (
+              <Motion key={listing.id} show delay={i * 60}>
+                <ListingCard listing={listing} vendor={vendor} nav={nav} addToast={addToast} studentMode={studentMode} accentColor={loc.color} />
+              </Motion>
+            );
+          })}
+        </div>
+
+        {/* Vendors Section */}
+        <Motion show>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, color: "#fff", margin: "60px 0 24px" }}>Local Vendors at {loc.name}</h2>
+        </Motion>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+          {vendors.map((v, i) => (
+            <Motion key={v.id} show delay={i * 50}>
+              <Card onClick={() => nav({ page: "vendor", vendorId: v.id })}>
+                <div style={{ padding: 20 }}>
+                  <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 32 }}>{v.image}</span>
+                    <div>
+                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{v.name}</div>
+                      <div style={{ color: "#9CA3AF", fontSize: 12 }}>{v.category}</div>
+                    </div>
+                  </div>
+                  <Stars rating={v.rating} />
+                  <div style={{ color: "#6B7280", fontSize: 12, marginTop: 4 }}>{v.reviews} reviews</div>
+                </div>
+              </Card>
+            </Motion>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// LISTING CARD
+function ListingCard({ listing, vendor, nav, addToast, studentMode, accentColor = "#FF6B35" }) {
+  const { add } = useCart();
+  const [adding, setAdding] = useState(false);
+  const price = studentMode ? listing.studentPrice : listing.price;
+
+  const handleAdd = (e) => {
+    e.stopPropagation();
+    setAdding(true);
+    add({ listingId: listing.id, title: listing.title, price, vendorId: listing.vendorId, type: listing.type, addOns: [] });
+    addToast({ text: `${listing.title} added to cart! 🛒`, type: "success" });
+    setTimeout(() => setAdding(false), 600);
+  };
+
+  return (
+    <Card onClick={() => nav({ page: "listing", listingId: listing.id })}>
+      <div style={{ padding: 0 }}>
+        <div style={{ background: `linear-gradient(135deg, ${accentColor}22, ${accentColor}08)`, padding: "28px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+            <div style={{ fontSize: 36 }}>{vendor?.image || "🎫"}</div>
+            <Badge color={accentColor}>{listing.type}</Badge>
+          </div>
+          <h3 style={{ color: "#fff", fontSize: 16, fontWeight: 800, margin: "0 0 6px", lineHeight: 1.3 }}>{listing.title}</h3>
+          <p style={{ color: "#9CA3AF", fontSize: 13, margin: "0 0 12px", lineHeight: 1.5 }}>{listing.description.slice(0, 80)}...</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ color: "#6B7280", fontSize: 12 }}>⏱ {listing.duration}</span>
+            <span style={{ color: "#6B7280", fontSize: 12 }}>👥 Max {listing.capacity}</span>
+          </div>
+        </div>
+        <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <span style={{ color: accentColor, fontWeight: 900, fontSize: 18 }}>{fmt(price)}</span>
+            {studentMode && <span style={{ color: "#00C9A7", fontSize: 11, marginLeft: 6 }}>student</span>}
+            <div style={{ color: "#6B7280", fontSize: 11 }}>/person</div>
+          </div>
+          <Btn size="sm" onClick={handleAdd} style={{ transform: adding ? "scale(0.9)" : "scale(1)", transition: "transform 150ms" }}>
+            {adding ? "✓ Added!" : "+ Cart"}
+          </Btn>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// LISTING DETAIL PAGE
+function ListingDetailPage({ listingId, nav, addToast, studentMode }) {
+  const listing = LISTINGS.find(l => l.id === listingId);
+  const vendor = listing ? getVendor(listing.vendorId) : null;
+  const loc = listing ? getLocation(listing.locationId) : null;
+  const { add } = useCart();
+  const [selectedSlot, setSelectedSlot] = useState(listing?.slots[0]);
+  const [date, setDate] = useState("2026-03-15");
+  const [qty, setQty] = useState(1);
+  const [selectedAddOns, setSelectedAddOns] = useState([]);
+  const [showBooking, setShowBooking] = useState(false);
+
+  if (!listing) return <div style={{ color: "#fff", padding: 40 }}>Listing not found</div>;
+
+  const price = studentMode ? listing.studentPrice : listing.price;
+  const totalPrice = (price + selectedAddOns.reduce((s, a) => s + a.price, 0)) * qty;
+
+  const handleAddToCart = () => {
+    add({ listingId: listing.id, title: listing.title, price: totalPrice, vendorId: listing.vendorId, type: listing.type, addOns: selectedAddOns, slot: selectedSlot, date, qty });
+    addToast({ text: `${listing.title} added to cart! 🛒`, type: "success" });
+    if (totalPrice >= 1000) addToast({ text: "🎉 You've unlocked TruePoints cashback!", type: "info" });
+    nav({ page: "cart" });
+  };
+
+  const toggleAddOn = (addOn) => {
+    if (selectedAddOns.find(a => a.name === addOn.name)) setSelectedAddOns(selectedAddOns.filter(a => a.name !== addOn.name));
+    else setSelectedAddOns([...selectedAddOns, addOn]);
+  };
+
+  return (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 80px" }}>
+      {/* Breadcrumb */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 24, color: "#6B7280", fontSize: 13 }}>
+        <span onClick={() => nav({ page: "home" })} style={{ cursor: "pointer", color: "#FF6B35" }}>Home</span>
+        <span>/</span>
+        <span onClick={() => nav({ page: "location", locationId: listing.locationId })} style={{ cursor: "pointer", color: "#FF6B35" }}>{loc?.name}</span>
+        <span>/</span>
+        <span>{listing.title}</span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 32, alignItems: "start" }}>
+        {/* Left */}
+        <div>
+          <Motion show>
+            <div style={{ background: `linear-gradient(135deg, rgba(255,107,53,0.15), rgba(255,107,53,0.05))`, borderRadius: 20, padding: "40px", marginBottom: 24, textAlign: "center", border: "1px solid rgba(255,107,53,0.2)" }}>
+              <div style={{ fontSize: 64, marginBottom: 16 }}>{vendor?.image}</div>
+              <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900, color: "#fff", margin: "0 0 12px" }}>{listing.title}</h1>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                <Badge>{listing.type}</Badge>
+                {listing.tags.map(t => <Badge key={t} color="#6B7280">{t}</Badge>)}
+              </div>
+            </div>
+          </Motion>
+
+          <Motion show delay={100}>
+            <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid rgba(255,255,255,0.08)" }}>
+              <h3 style={{ color: "#fff", fontWeight: 700, margin: "0 0 12px" }}>About this experience</h3>
+              <p style={{ color: "#9CA3AF", lineHeight: 1.7, margin: 0 }}>{listing.description}</p>
+            </div>
+          </Motion>
+
+          <Motion show delay={150}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+              {[["⏱ Duration", listing.duration], ["👥 Group size", `Max ${listing.capacity}`], ["🎫 Type", listing.type], ["↩ Cancellation", listing.cancellation]].map(([k, v]) => (
+                <div key={k} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "14px 16px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div style={{ color: "#6B7280", fontSize: 11, fontWeight: 600, marginBottom: 4 }}>{k}</div>
+                  <div style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </Motion>
+
+          {listing.addOns?.length > 0 && (
+            <Motion show delay={200}>
+              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 16, padding: 24, border: "1px solid rgba(255,255,255,0.08)" }}>
+                <h3 style={{ color: "#fff", fontWeight: 700, margin: "0 0 16px" }}>Add-ons</h3>
+                {listing.addOns.map(a => (
+                  <div key={a.name} onClick={() => toggleAddOn(a)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${selectedAddOns.find(x => x.name === a.name) ? "#00C9A7" : "rgba(255,255,255,0.2)"}`, background: selectedAddOns.find(x => x.name === a.name) ? "#00C9A7" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 200ms" }}>
+                        {selectedAddOns.find(x => x.name === a.name) && <span style={{ color: "#fff", fontSize: 12 }}>✓</span>}
+                      </div>
+                      <span style={{ color: "#fff", fontSize: 14 }}>{a.name}</span>
+                    </div>
+                    <span style={{ color: "#FF6B35", fontWeight: 700 }}>{a.price === 0 ? "Free" : fmt(a.price)}</span>
+                  </div>
+                ))}
+              </div>
+            </Motion>
+          )}
+
+          {/* Vendor */}
+          <Motion show delay={250}>
+            <div onClick={() => nav({ page: "vendor", vendorId: vendor.id })} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 16, padding: 20, marginTop: 20, border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer", display: "flex", gap: 16, alignItems: "center" }}>
+              <span style={{ fontSize: 40 }}>{vendor.image}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{vendor.name}</div>
+                <Stars rating={vendor.rating} />
+                <div style={{ color: "#9CA3AF", fontSize: 12, marginTop: 4 }}>{vendor.bio}</div>
+              </div>
+              {vendor.verified && <VerifiedBadge />}
+            </div>
+          </Motion>
+        </div>
+
+        {/* Booking Sidebar */}
+        <div style={{ position: "sticky", top: 80 }}>
+          <Motion show delay={300}>
+            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: 24 }}>
+              <div style={{ marginBottom: 20 }}>
+                <span style={{ fontSize: 28, fontWeight: 900, color: "#FF6B35" }}>{fmt(price)}</span>
+                <span style={{ color: "#9CA3AF", fontSize: 14 }}> /person</span>
+                {studentMode && <div style={{ color: "#00C9A7", fontSize: 12, fontWeight: 600 }}>🎓 Student price active</div>}
+              </div>
+
+              {/* Date */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: "block", color: "#9CA3AF", fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: "0.1em" }}>SELECT DATE</label>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)} min="2026-03-10" style={{ width: "100%", padding: "10px 12px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "#fff", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+              </div>
+
+              {/* Slot */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: "block", color: "#9CA3AF", fontSize: 11, fontWeight: 600, marginBottom: 8, letterSpacing: "0.1em" }}>SELECT TIME SLOT</label>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {listing.slots.map(s => (
+                    <button key={s} onClick={() => setSelectedSlot(s)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${selectedSlot === s ? "#FF6B35" : "rgba(255,255,255,0.12)"}`, background: selectedSlot === s ? "rgba(255,107,53,0.15)" : "transparent", color: selectedSlot === s ? "#FF6B35" : "#9CA3AF", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, transition: "all 200ms" }}>{s}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Qty */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", color: "#9CA3AF", fontSize: 11, fontWeight: 600, marginBottom: 8, letterSpacing: "0.1em" }}>GUESTS</label>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <button onClick={() => setQty(Math.max(1, qty - 1))} style={{ width: 36, height: 36, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.06)", color: "#fff", cursor: "pointer", fontSize: 18 }}>−</button>
+                  <span style={{ color: "#fff", fontWeight: 700, fontSize: 18, minWidth: 30, textAlign: "center" }}>{qty}</span>
+                  <button onClick={() => setQty(Math.min(listing.capacity, qty + 1))} style={{ width: 36, height: 36, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.06)", color: "#fff", cursor: "pointer", fontSize: 18 }}>+</button>
+                </div>
+              </div>
+
+              {/* Total */}
+              <div style={{ background: "rgba(255,107,53,0.08)", borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", color: "#9CA3AF", fontSize: 13, marginBottom: 6 }}>
+                  <span>{fmt(price)} × {qty}</span>
+                  <span>{fmt(price * qty)}</span>
+                </div>
+                {selectedAddOns.map(a => (
+                  <div key={a.name} style={{ display: "flex", justifyContent: "space-between", color: "#9CA3AF", fontSize: 13, marginBottom: 6 }}>
+                    <span>{a.name}</span>
+                    <span>{a.price === 0 ? "Free" : fmt(a.price * qty)}</span>
+                  </div>
+                ))}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 10, display: "flex", justifyContent: "space-between", color: "#fff", fontWeight: 800, fontSize: 16 }}>
+                  <span>Total</span>
+                  <span style={{ color: "#FF6B35" }}>{fmt(totalPrice)}</span>
+                </div>
+              </div>
+
+              <Btn style={{ width: "100%", justifyContent: "center" }} size="lg" onClick={handleAddToCart}>
+                🛒 Add to Cart
+              </Btn>
+              <Btn variant="secondary" style={{ width: "100%", justifyContent: "center", marginTop: 10 }} size="md" onClick={() => { handleAddToCart(); }}>
+                ⚡ Book Now
+              </Btn>
+            </div>
+          </Motion>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// VENDOR PAGE
+function VendorPage({ vendorId, nav, addToast, studentMode }) {
+  const vendor = getVendor(vendorId);
+  const listings = getListingsByVendor(vendorId);
+  const loc = listings[0] ? getLocation(listings[0].locationId) : null;
+
+  if (!vendor) return <div style={{ color: "#fff", padding: 40 }}>Vendor not found</div>;
+
+  return (
+    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <Motion show>
+        <div style={{ background: "linear-gradient(135deg, rgba(255,107,53,0.1), rgba(0,201,167,0.05))", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 24, padding: "40px", marginBottom: 32, display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <div style={{ width: 80, height: 80, borderRadius: 20, background: "rgba(255,107,53,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 44, flexShrink: 0 }}>{vendor.image}</div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
+              <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900, color: "#fff", margin: 0 }}>{vendor.name}</h1>
+              {vendor.verified && <VerifiedBadge />}
+            </div>
+            <Badge>{vendor.category}</Badge>
+            {loc && <span style={{ marginLeft: 8, color: "#9CA3AF", fontSize: 13 }}>📍 {loc.name}</span>}
+            <p style={{ color: "#9CA3AF", margin: "12px 0", lineHeight: 1.6 }}>{vendor.bio}</p>
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+              <div><Stars rating={vendor.rating} /><div style={{ color: "#6B7280", fontSize: 12 }}>{vendor.reviews} reviews</div></div>
+              <div><div style={{ color: "#fff", fontWeight: 700 }}>{listings.length}</div><div style={{ color: "#6B7280", fontSize: 12 }}>Listings</div></div>
+            </div>
+          </div>
+        </div>
+      </Motion>
+
+      <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: "#fff", margin: "0 0 20px" }}>Available Experiences</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+        {listings.map((listing, i) => (
+          <Motion key={listing.id} show delay={i * 60}>
+            <ListingCard listing={listing} vendor={vendor} nav={nav} addToast={addToast} studentMode={studentMode} />
+          </Motion>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// CART PAGE
+function CartPage({ nav, addToast, studentMode }) {
+  const { cart, remove, total } = useCart();
+  const [coupon, setCoupon] = useState("");
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [walletPoints, setWalletPoints] = useState(450);
+  const [useWallet, setUseWallet] = useState(false);
+
+  const subtotal = total();
+  const gst = Math.round(subtotal * 0.18);
+  const discount = couponApplied ? Math.round(subtotal * 0.1) : 0;
+  const walletDiscount = useWallet ? Math.min(walletPoints, Math.round(subtotal * 0.5)) : 0;
+  const grandTotal = subtotal + gst - discount - walletDiscount;
+
+  const applyCoupon = () => {
+    if (coupon.toUpperCase() === "STUDENT20" || coupon.toUpperCase() === "LAUNCH20") { setCouponApplied(true); addToast({ text: "Coupon applied! 10% off 🎉", type: "success" }); }
+    else addToast({ text: "Invalid coupon code", type: "error" });
+  };
+
+  if (cart.length === 0) return (
+    <div style={{ maxWidth: 600, margin: "80px auto", padding: "0 24px", textAlign: "center" }}>
+      <Motion show>
+        <div style={{ fontSize: 64, marginBottom: 20 }}>🛒</div>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, color: "#fff", margin: "0 0 12px" }}>Your cart is empty</h2>
+        <p style={{ color: "#9CA3AF", marginBottom: 24 }}>Explore Bengaluru's experiences and add them here.</p>
+        <Btn size="lg" onClick={() => nav({ page: "home" })}>Explore Experiences</Btn>
+      </Motion>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <Motion show>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#fff", margin: "0 0 32px" }}>Your Cart ({cart.length})</h1>
+      </Motion>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 28, alignItems: "start" }}>
+        {/* Items */}
+        <div>
+          {cart.map((item, i) => {
+            const vendor = getVendor(item.vendorId);
+            return (
+              <Motion key={item.cartId} show delay={i * 50}>
+                <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 20, marginBottom: 16, display: "flex", gap: 16, alignItems: "center" }}>
+                  <span style={{ fontSize: 36 }}>{vendor?.image}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{item.title}</div>
+                    {item.slot && <div style={{ color: "#9CA3AF", fontSize: 12, marginTop: 4 }}>📅 {item.date} at {item.slot}</div>}
+                    {item.addOns?.length > 0 && <div style={{ color: "#9CA3AF", fontSize: 12 }}>+ {item.addOns.map(a => a.name).join(", ")}</div>}
+                    <Badge color="#6B7280" style={{ marginTop: 6 }}>{item.type}</Badge>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ color: "#FF6B35", fontWeight: 800, fontSize: 16 }}>{fmt(item.price)}</div>
+                    <button onClick={() => { remove(item.cartId); addToast({ text: "Removed from cart", type: "info" }); }} style={{ background: "none", border: "none", color: "#6B7280", cursor: "pointer", fontSize: 12, marginTop: 4 }}>Remove</button>
+                  </div>
+                </div>
+              </Motion>
+            );
+          })}
+        </div>
+
+        {/* Summary */}
+        <div style={{ position: "sticky", top: 80 }}>
+          <Motion show delay={200}>
+            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: 24 }}>
+              <h3 style={{ color: "#fff", fontWeight: 800, margin: "0 0 20px" }}>Order Summary</h3>
+
+              {/* Coupon */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="Coupon code" style={{ flex: 1, padding: "8px 12px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, color: "#fff", fontSize: 13, fontFamily: "inherit", outline: "none" }} />
+                  <Btn size="sm" onClick={applyCoupon} variant="ghost">Apply</Btn>
+                </div>
+                {couponApplied && <div style={{ color: "#00C9A7", fontSize: 12, marginTop: 6 }}>✓ STUDENT20 applied — 10% off!</div>}
+              </div>
+
+              {/* Wallet */}
+              <div onClick={() => setUseWallet(!useWallet)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.08)", cursor: "pointer", marginBottom: 16 }}>
+                <div>
+                  <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>💰 TruePoints Wallet</div>
+                  <div style={{ color: "#9CA3AF", fontSize: 12 }}>{walletPoints} points = {fmt(walletPoints)}</div>
+                </div>
+                <div style={{ width: 36, height: 20, background: useWallet ? "#00C9A7" : "rgba(255,255,255,0.1)", borderRadius: 10, position: "relative", transition: "background 200ms" }}>
+                  <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: useWallet ? 19 : 3, transition: "left 200ms" }} />
+                </div>
+              </div>
+
+              {/* Breakdown */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+                {[["Subtotal", fmt(subtotal)], ["GST (18%)", fmt(gst)]].map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", color: "#9CA3AF", fontSize: 14 }}>
+                    <span>{k}</span><span>{v}</span>
+                  </div>
+                ))}
+                {discount > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: "#00C9A7", fontSize: 14 }}><span>Coupon discount</span><span>−{fmt(discount)}</span></div>}
+                {walletDiscount > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: "#00C9A7", fontSize: 14 }}><span>Wallet used</span><span>−{fmt(walletDiscount)}</span></div>}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 12, display: "flex", justifyContent: "space-between", color: "#fff", fontWeight: 800, fontSize: 18 }}>
+                  <span>Grand Total</span>
+                  <span style={{ color: "#FF6B35" }}>{fmt(grandTotal)}</span>
+                </div>
+              </div>
+
+              <Btn size="lg" style={{ width: "100%" }} onClick={() => nav({ page: "checkout", total: grandTotal })}>
+                Proceed to Checkout →
+              </Btn>
+              <div style={{ color: "#6B7280", fontSize: 12, textAlign: "center", marginTop: 12 }}>🔒 Secured by Razorpay</div>
+            </div>
+          </Motion>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// CHECKOUT PAGE
+function CheckoutPage({ total, nav, addToast }) {
+  const { cart, clear } = useCart();
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [payMethod, setPayMethod] = useState("upi");
+  const [upiId, setUpiId] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const [done, setDone] = useState(false);
+  const [orderId] = useState("TL" + Date.now().toString().slice(-8));
+  const checkoutTotal = total || cart.reduce((s, i) => s + i.price, 0) + Math.round(cart.reduce((s, i) => s + i.price, 0) * 0.18);
+
+  const handlePay = () => {
+    setProcessing(true);
+    setTimeout(() => { setProcessing(false); setDone(true); clear(); addToast({ text: "🎉 Booking confirmed! Check your email.", type: "success" }); }, 2000);
+  };
+
+  if (done) return (
+    <div style={{ maxWidth: 560, margin: "80px auto", padding: "0 24px", textAlign: "center" }}>
+      <Motion show>
+        <div style={{ fontSize: 72, marginBottom: 20, animation: "bounce 0.5s ease" }}>🎉</div>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#fff", margin: "0 0 12px" }}>Booking Confirmed!</h1>
+        <p style={{ color: "#9CA3AF", marginBottom: 8 }}>Order ID: <strong style={{ color: "#FF6B35" }}>{orderId}</strong></p>
+        <p style={{ color: "#9CA3AF", marginBottom: 28 }}>Invoice sent to {form.email || "your email"}. Vendor payout scheduled T+3 days.</p>
+        <div style={{ background: "rgba(0,201,167,0.1)", border: "1px solid rgba(0,201,167,0.3)", borderRadius: 16, padding: 20, marginBottom: 28 }}>
+          <div style={{ color: "#00C9A7", fontWeight: 700, fontSize: 16, marginBottom: 4 }}>+{Math.round(checkoutTotal * 0.05)} TruePoints earned!</div>
+          <div style={{ color: "#9CA3AF", fontSize: 13 }}>Redeemable on your next booking (expires 12 months)</div>
+        </div>
+        <Btn size="lg" onClick={() => nav({ page: "home" })}>Explore More</Btn>
+      </Motion>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <Motion show>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, color: "#fff", margin: "0 0 28px" }}>Checkout</h1>
+        <Stepper steps={["Your Info", "Payment", "Confirm"]} current={step} />
+      </Motion>
+
+      {step === 0 && (
+        <Motion show>
+          <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 20, padding: 28, border: "1px solid rgba(255,255,255,0.08)" }}>
+            <h3 style={{ color: "#fff", fontWeight: 700, margin: "0 0 20px" }}>Personal Details</h3>
+            <Input label="Full Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Rahul Sharma" />
+            <Input label="Email" value={form.email} onChange={v => setForm({ ...form, email: v })} type="email" placeholder="rahul@example.com" />
+            <Input label="Phone" value={form.phone} onChange={v => setForm({ ...form, phone: v })} type="tel" placeholder="+91 98765 43210" />
+            <Btn size="lg" onClick={() => setStep(1)} disabled={!form.name || !form.email} style={{ marginTop: 8 }}>
+              Continue to Payment →
+            </Btn>
+          </div>
+        </Motion>
+      )}
+
+      {step === 1 && (
+        <Motion show>
+          <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 20, padding: 28, border: "1px solid rgba(255,255,255,0.08)" }}>
+            <h3 style={{ color: "#fff", fontWeight: 700, margin: "0 0 20px" }}>Payment Method</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+              {[["upi", "💳 UPI / BHIM"], ["card", "💳 Credit / Debit Card"], ["netbanking", "🏦 Net Banking"], ["wallet", "👛 Paytm / PhonePe"]].map(([val, label]) => (
+                <div key={val} onClick={() => setPayMethod(val)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderRadius: 12, border: `1px solid ${payMethod === val ? "#FF6B35" : "rgba(255,255,255,0.1)"}`, background: payMethod === val ? "rgba(255,107,53,0.1)" : "rgba(255,255,255,0.03)", cursor: "pointer", transition: "all 200ms" }}>
+                  <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${payMethod === val ? "#FF6B35" : "rgba(255,255,255,0.3)"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {payMethod === val && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#FF6B35" }} />}
+                  </div>
+                  <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{label}</span>
+                </div>
+              ))}
+            </div>
+            {payMethod === "upi" && <Input label="UPI ID" value={upiId} onChange={setUpiId} placeholder="name@paytm" />}
+            <div style={{ display: "flex", gap: 12 }}>
+              <Btn variant="secondary" onClick={() => setStep(0)}>← Back</Btn>
+              <Btn onClick={() => setStep(2)}>Review Order →</Btn>
+            </div>
+          </div>
+        </Motion>
+      )}
+
+      {step === 2 && (
+        <Motion show>
+          <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 20, padding: 28, border: "1px solid rgba(255,255,255,0.08)" }}>
+            <h3 style={{ color: "#fff", fontWeight: 700, margin: "0 0 20px" }}>Confirm & Pay</h3>
+            <div style={{ background: "rgba(255,107,53,0.08)", borderRadius: 12, padding: "16px 18px", marginBottom: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#9CA3AF", fontSize: 14, marginBottom: 8 }}><span>Name</span><span style={{ color: "#fff" }}>{form.name}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#9CA3AF", fontSize: 14, marginBottom: 8 }}><span>Email</span><span style={{ color: "#fff" }}>{form.email}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#9CA3AF", fontSize: 14, marginBottom: 8 }}><span>Payment</span><span style={{ color: "#fff" }}>{payMethod.toUpperCase()}</span></div>
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 12, display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 18 }}><span style={{ color: "#fff" }}>Total</span><span style={{ color: "#FF6B35" }}>{fmt(checkoutTotal)}</span></div>
+            </div>
+            <div style={{ color: "#9CA3AF", fontSize: 12, marginBottom: 20, lineHeight: 1.6 }}>🔐 Payment secured by Razorpay. 3DS authentication may be required. Invoice will be emailed upon payment confirmation.</div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Btn variant="secondary" onClick={() => setStep(1)}>← Back</Btn>
+              <Btn size="lg" onClick={handlePay} disabled={processing} style={{ flex: 1 }}>
+                {processing ? "Processing..." : `Pay ${fmt(checkoutTotal)} →`}
+              </Btn>
+            </div>
+          </div>
+        </Motion>
+      )}
+
+      {/* GST info */}
+      <div style={{ color: "#4B5563", fontSize: 12, textAlign: "center", marginTop: 24, lineHeight: 1.6 }}>
+        All prices include 18% GST. Platform fee (8–18% vendor commission) included. By proceeding, you agree to TrueLocal's cancellation & refund policy.
+      </div>
+    </div>
+  );
+}
+
+// VENDOR PORTAL PAGE
+function VendorPortalPage({ nav, addToast }) {
+  const [tab, setTab] = useState("dashboard");
+  const [listings, setListings] = useState([LISTINGS[0], LISTINGS[1]]);
+  const [newListingModal, setNewListingModal] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newPrice, setNewPrice] = useState("");
+
+  const addListing = () => {
+    if (!newTitle || !newPrice) return;
+    setListings([...listings, { id: "custom" + Date.now(), title: newTitle, price: parseInt(newPrice), studentPrice: Math.round(parseInt(newPrice) * 0.8), type: "experience", tags: [], description: "New experience." }]);
+    setNewListingModal(false); setNewTitle(""); setNewPrice("");
+    addToast({ text: "Listing created! Under review.", type: "success" });
+  };
+
+  return (
+    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <Motion show>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, color: "#fff", margin: 0 }}>Vendor Portal</h1>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <VerifiedBadge />
+            <Badge color="#FFD700">⭐ Premium Vendor</Badge>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 4, marginBottom: 28, width: "fit-content" }}>
+          {["dashboard", "listings", "bookings", "payouts"].map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: tab === t ? "#FF6B35" : "transparent", color: tab === t ? "#fff" : "#9CA3AF", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, textTransform: "capitalize", transition: "all 200ms" }}>{t}</button>
+          ))}
+        </div>
+      </Motion>
+
+      {tab === "dashboard" && (
+        <Motion show>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+            {[["Total Revenue", "₹42,800", "↑ 12% this month", "#FF6B35"], ["Active Listings", "4", "2 pending review", "#00C9A7"], ["Upcoming Bookings", "7", "Next: Tomorrow 10am", "#8B5CF6"], ["Avg. Rating", "4.9 ★", "Based on 234 reviews", "#FFD700"], ["Net Payout (T+3)", "₹8,400", "Processed Friday", "#22C55E"], ["Student Discounts Used", "23", "₹4,600 total discount", "#F59E0B"]].map(([title, value, sub, color]) => (
+              <div key={title} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 20 }}>
+                <div style={{ color: "#9CA3AF", fontSize: 12, marginBottom: 8 }}>{title}</div>
+                <div style={{ color: color, fontWeight: 900, fontSize: 22 }}>{value}</div>
+                <div style={{ color: "#6B7280", fontSize: 12, marginTop: 4 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: "rgba(0,201,167,0.08)", border: "1px solid rgba(0,201,167,0.2)", borderRadius: 16, padding: 20 }}>
+            <h3 style={{ color: "#00C9A7", margin: "0 0 8px" }}>✓ Verified Vendor Status</h3>
+            <p style={{ color: "#9CA3AF", margin: 0, fontSize: 14 }}>KYC complete · 3+ verified reviews · Background check passed · Test payout successful</p>
+          </div>
+        </Motion>
+      )}
+
+      {tab === "listings" && (
+        <Motion show>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <h3 style={{ color: "#fff", margin: 0 }}>Your Listings ({listings.length})</h3>
+            <Btn onClick={() => setNewListingModal(true)}>+ New Listing</Btn>
+          </div>
+          {listings.map(l => (
+            <div key={l.id} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 20, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{l.title}</div>
+                <div style={{ color: "#9CA3AF", fontSize: 13 }}>{fmt(l.price)} · {l.type}</div>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <Badge color="#00C9A7">Active</Badge>
+                <Badge color="#6B7280">Student: {fmt(l.studentPrice)}</Badge>
+                <Btn size="sm" variant="secondary">Edit</Btn>
+              </div>
+            </div>
+          ))}
+        </Motion>
+      )}
+
+      {tab === "bookings" && (
+        <Motion show>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[{ id: "B001", guest: "Priya Sharma", listing: "Vintage Book Hunt", date: "Mar 12", time: "14:00", amount: 299, status: "confirmed" }, { id: "B002", guest: "Arjun Nair", listing: "Espresso Masterclass", date: "Mar 14", time: "09:00", amount: 599, status: "confirmed" }, { id: "B003", guest: "Sneha Reddy", listing: "Street Art Tour", date: "Mar 15", time: "16:00", amount: 499, status: "pending" }].map(b => (
+              <div key={b.id} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                <div>
+                  <div style={{ color: "#fff", fontWeight: 700 }}>{b.guest}</div>
+                  <div style={{ color: "#9CA3AF", fontSize: 13 }}>{b.listing} · {b.date} at {b.time}</div>
+                  <div style={{ color: "#6B7280", fontSize: 12 }}>#{b.id}</div>
+                </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <span style={{ color: "#FF6B35", fontWeight: 800 }}>{fmt(b.amount)}</span>
+                  <Badge color={b.status === "confirmed" ? "#00C9A7" : "#F59E0B"}>{b.status}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Motion>
+      )}
+
+      {tab === "payouts" && (
+        <Motion show>
+          <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 24, marginBottom: 20 }}>
+            <h3 style={{ color: "#fff", margin: "0 0 16px" }}>Payout Schedule</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {[["Gross Earnings", "₹42,800"], ["Platform Commission (12%)", "−₹5,136"], ["GST Adjustment", "−₹2,052"], ["Net Payable", "₹35,612"]].map(([k, v]) => (
+                <div key={k} style={{ padding: "12px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 12 }}>
+                  <div style={{ color: "#6B7280", fontSize: 12 }}>{k}</div>
+                  <div style={{ color: k === "Net Payable" ? "#00C9A7" : "#fff", fontWeight: 700, fontSize: 18 }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ color: "#9CA3AF", fontSize: 13, lineHeight: 1.6 }}>
+            Payouts processed T+3 days for verified vendors · T+14 days for new vendors. Payout to registered bank account via NEFT/IMPS.
+          </div>
+        </Motion>
+      )}
+
+      <Modal open={newListingModal} onClose={() => setNewListingModal(false)} title="Create New Listing">
+        <Input label="Experience Title" value={newTitle} onChange={setNewTitle} placeholder="e.g., Coffee Art Masterclass" />
+        <Input label="Base Price (₹)" value={newPrice} onChange={setNewPrice} type="number" placeholder="599" />
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+          <Btn onClick={addListing}>Create Listing</Btn>
+          <Btn variant="secondary" onClick={() => setNewListingModal(false)}>Cancel</Btn>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ITINERARY BUILDER (Church Street)
+function ItineraryPage({ nav, addToast }) {
+  const churchListings = getListingsByLocation("church-street");
+  const [itinerary, setItinerary] = useState([]);
+  const [dragOver, setDragOver] = useState(false);
+  const { add } = useCart();
+
+  const addToItinerary = (listing) => {
+    if (!itinerary.find(i => i.id === listing.id)) {
+      setItinerary([...itinerary, { ...listing, startTime: "10:00" }]);
+      addToast({ text: `${listing.title} added to your day! ✨`, type: "success" });
+    }
+  };
+
+  const removeFromItinerary = (id) => setItinerary(itinerary.filter(i => i.id !== id));
+
+  const bookAll = () => {
+    itinerary.forEach(listing => add({ listingId: listing.id, title: listing.title, price: listing.price, vendorId: listing.vendorId, type: listing.type, addOns: [] }));
+    addToast({ text: `${itinerary.length} experiences added to cart! 🎉`, type: "success" });
+    nav({ page: "cart" });
+  };
+
+  return (
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <Motion show>
+        <div style={{ marginBottom: 32 }}>
+          <Badge color="#FF6B35">Church Street Exclusive ✨</Badge>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#fff", margin: "12px 0 8px" }}>Plan My Church Street Day</h1>
+          <p style={{ color: "#9CA3AF" }}>Drag experiences to build your perfect day itinerary</p>
+        </div>
+      </Motion>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+        {/* Available */}
+        <div>
+          <h3 style={{ color: "#9CA3AF", fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 16px" }}>Available Experiences</h3>
+          {churchListings.map((l, i) => {
+            const inIt = itinerary.find(x => x.id === l.id);
+            return (
+              <Motion key={l.id} show delay={i * 50}>
+                <div style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${inIt ? "rgba(0,201,167,0.3)" : "rgba(255,255,255,0.1)"}`, borderRadius: 14, padding: 16, marginBottom: 12, display: "flex", gap: 12, alignItems: "center", cursor: inIt ? "default" : "pointer", opacity: inIt ? 0.5 : 1, transition: "all 200ms" }} onClick={() => !inIt && addToItinerary(l)}>
+                  <span style={{ fontSize: 28 }}>{getVendor(l.vendorId)?.image}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{l.title}</div>
+                    <div style={{ color: "#9CA3AF", fontSize: 12 }}>{l.duration} · {fmt(l.price)}</div>
+                  </div>
+                  {inIt ? <span style={{ color: "#00C9A7", fontSize: 12, fontWeight: 700 }}>Added ✓</span> : <span style={{ color: "#FF6B35", fontSize: 20 }}>+</span>}
+                </div>
+              </Motion>
+            );
+          })}
+        </div>
+
+        {/* Itinerary */}
+        <div>
+          <h3 style={{ color: "#9CA3AF", fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 16px" }}>My Day ({itinerary.length} experiences)</h3>
+          <div onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} style={{ minHeight: 200, background: dragOver ? "rgba(255,107,53,0.08)" : "rgba(255,255,255,0.02)", border: `2px dashed ${dragOver ? "#FF6B35" : "rgba(255,255,255,0.1)"}`, borderRadius: 16, padding: 16, marginBottom: 20, transition: "all 200ms" }}>
+            {itinerary.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#4B5563", padding: "40px 20px" }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+                <div>Click experiences to add them here</div>
+              </div>
+            ) : itinerary.map((item, i) => (
+              <Motion key={item.id} show delay={i * 50}>
+                <div style={{ background: "rgba(255,107,53,0.08)", border: "1px solid rgba(255,107,53,0.2)", borderRadius: 12, padding: "12px 16px", marginBottom: 10, display: "flex", gap: 12, alignItems: "center" }}>
+                  <span style={{ color: "#FF6B35", fontWeight: 800, fontSize: 13, minWidth: 32 }}>{i + 1}.</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{item.title}</div>
+                    <div style={{ color: "#9CA3AF", fontSize: 12 }}>{item.duration} · {fmt(item.price)}</div>
+                  </div>
+                  <button onClick={() => removeFromItinerary(item.id)} style={{ background: "none", border: "none", color: "#6B7280", cursor: "pointer", fontSize: 16 }}>✕</button>
+                </div>
+              </Motion>
+            ))}
+          </div>
+          {itinerary.length > 0 && (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#9CA3AF", fontSize: 14, marginBottom: 12 }}>
+                <span>Total</span>
+                <span style={{ color: "#FF6B35", fontWeight: 800, fontSize: 16 }}>{fmt(itinerary.reduce((s, i) => s + i.price, 0))}</span>
+              </div>
+              <Btn size="lg" style={{ width: "100%" }} onClick={bookAll}>Book All {itinerary.length} Experiences →</Btn>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// STUDENT VERIFICATION PAGE
+function StudentPage({ nav, addToast }) {
+  const [step, setStep] = useState(0);
+  const [idFile, setIdFile] = useState(null);
+  const [verifying, setVerifying] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [email, setEmail] = useState("");
+  const [institution, setInstitution] = useState("");
+
+  const handleVerify = () => {
+    if (!idFile) { addToast({ text: "Please upload your student ID", type: "error" }); return; }
+    setVerifying(true);
+    setTimeout(() => { setVerifying(false); setVerified(true); addToast({ text: "Student ID verified! 20% off unlocked 🎓", type: "success" }); }, 2200);
+  };
+
+  return (
+    <div style={{ maxWidth: 560, margin: "0 auto", padding: "60px 24px 80px" }}>
+      <Motion show>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>🎓</div>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, color: "#fff", margin: "0 0 10px" }}>Student Verification</h1>
+          <p style={{ color: "#9CA3AF" }}>Get 20% off all experiences on TrueLocal</p>
+        </div>
+      </Motion>
+
+      {!verified ? (
+        <Motion show delay={100}>
+          <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 28 }}>
+            <Stepper steps={["Upload ID", "Review", "Confirmed"]} current={verifying ? 1 : verified ? 2 : 0} />
+            <Input label="College/University Email" value={email} onChange={setEmail} type="email" placeholder="you@iimb.ac.in" />
+            <Input label="Institution Name" value={institution} onChange={setInstitution} placeholder="IIM Bangalore" />
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", color: "#9CA3AF", fontSize: 12, fontWeight: 600, marginBottom: 8, letterSpacing: "0.1em" }}>UPLOAD STUDENT ID</label>
+              <div onClick={() => document.getElementById("fileInput").click()} style={{ border: "2px dashed rgba(255,255,255,0.15)", borderRadius: 12, padding: "24px", textAlign: "center", cursor: "pointer", transition: "all 200ms" }} onMouseEnter={e => e.currentTarget.style.borderColor = "#FF6B35"} onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>{idFile ? "✅" : "📄"}</div>
+                <div style={{ color: idFile ? "#00C9A7" : "#9CA3AF", fontSize: 14 }}>{idFile ? idFile.name : "Click to upload student ID (JPG, PNG, PDF)"}</div>
+              </div>
+              <input id="fileInput" type="file" accept="image/*,.pdf" style={{ display: "none" }} onChange={e => setIdFile(e.target.files[0])} />
+            </div>
+            <div style={{ background: "rgba(0,201,167,0.08)", borderRadius: 12, padding: "12px 16px", marginBottom: 20, color: "#9CA3AF", fontSize: 13 }}>
+              🔒 ID processed via OCR. Auto-validated + manual audit for suspicious claims. Expires 12 months.
+            </div>
+            <Btn size="lg" style={{ width: "100%" }} onClick={handleVerify} disabled={verifying}>
+              {verifying ? "Verifying..." : "Verify My Student ID"}
+            </Btn>
+          </div>
+        </Motion>
+      ) : (
+        <Motion show>
+          <div style={{ textAlign: "center", background: "rgba(0,201,167,0.08)", border: "1px solid rgba(0,201,167,0.3)", borderRadius: 20, padding: 40 }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: "#00C9A7", margin: "0 0 12px" }}>Verified Student!</h2>
+            <p style={{ color: "#9CA3AF", marginBottom: 24 }}>20% discount active on all experiences. Valid for 12 months.</p>
+            <Btn size="lg" onClick={() => nav({ page: "home" })}>Start Exploring →</Btn>
+          </div>
+        </Motion>
+      )}
+    </div>
+  );
+}
+
+// EXPLORE PAGE
+function ExplorePage({ nav, addToast }) {
+  const [filter, setFilter] = useState("all");
+  const [studentMode, setStudentMode] = useState(false);
+  const types = ["all", "experience", "event", "adventure", "workshop"];
+
+  const filtered = filter === "all" ? LISTINGS : LISTINGS.filter(l => l.type === filter);
+
+  return (
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <Motion show>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, color: "#fff", margin: "0 0 8px" }}>All Experiences</h1>
+            <p style={{ color: "#9CA3AF", margin: 0 }}>Handpicked from Bengaluru's best local vendors</p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ color: "#9CA3AF", fontSize: 14 }}>Student mode</span>
+            <div onClick={() => setStudentMode(!studentMode)} style={{ width: 44, height: 24, background: studentMode ? "#00C9A7" : "rgba(255,255,255,0.1)", borderRadius: 12, position: "relative", cursor: "pointer", transition: "background 200ms" }}>
+              <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 3, left: studentMode ? 23 : 3, transition: "left 200ms" }} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 32 }}>
+          {types.map(t => (
+            <button key={t} onClick={() => setFilter(t)} style={{ padding: "8px 18px", borderRadius: 100, border: `1px solid ${filter === t ? "#FF6B35" : "rgba(255,255,255,0.12)"}`, background: filter === t ? "rgba(255,107,53,0.15)" : "transparent", color: filter === t ? "#FF6B35" : "#9CA3AF", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, transition: "all 200ms", textTransform: "capitalize" }}>{t}</button>
+          ))}
+        </div>
+      </Motion>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
+        {filtered.map((listing, i) => {
+          const vendor = getVendor(listing.vendorId);
+          const loc = getLocation(listing.locationId);
+          return (
+            <Motion key={listing.id} show delay={i * 40}>
+              <div>
+                <div style={{ marginBottom: 6 }}>
+                  <span onClick={() => nav({ page: "location", locationId: listing.locationId })} style={{ color: "#6B7280", fontSize: 12, cursor: "pointer" }}>📍 {loc?.name}</span>
+                </div>
+                <ListingCard listing={listing} vendor={vendor} nav={nav} addToast={addToast} studentMode={studentMode} accentColor={loc?.color} />
+              </div>
+            </Motion>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// VENDOR ONBOARDING PAGE
+function VendorOnboardingPage({ nav, addToast }) {
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState({ name: "", category: "", phone: "", address: "", pan: "", gst: "", bio: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const steps = ["Sign Up", "KYC", "Profile", "Review"];
+
+  const set = (k, v) => setForm({ ...form, [k]: v });
+
+  const submit = () => {
+    setSubmitting(true);
+    setTimeout(() => { setSubmitting(false); setDone(true); addToast({ text: "Application submitted! Under review.", type: "success" }); }, 1800);
+  };
+
+  if (done) return (
+    <div style={{ maxWidth: 560, margin: "80px auto", padding: "0 24px", textAlign: "center" }}>
+      <Motion show>
+        <div style={{ fontSize: 64, marginBottom: 20 }}>🎊</div>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, color: "#fff", margin: "0 0 12px" }}>Application Submitted!</h1>
+        <p style={{ color: "#9CA3AF", marginBottom: 24 }}>We'll review your KYC and send you a ₹1 test payout within 2 business days. Check your phone and email.</p>
+        <Btn size="lg" onClick={() => nav({ page: "home" })}>Back to Home</Btn>
+      </Motion>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 600, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <Motion show>
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, color: "#fff", margin: "0 0 8px" }}>Become a TrueLocal Vendor</h1>
+          <p style={{ color: "#9CA3AF" }}>Join 22 verified vendors earning on TrueLocal</p>
+        </div>
+        <Stepper steps={steps} current={step} />
+      </Motion>
+
+      <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 28 }}>
+        {step === 0 && (
+          <Motion show>
+            <h3 style={{ color: "#fff", fontWeight: 700, margin: "0 0 20px" }}>Basic Information</h3>
+            <Input label="Business / Vendor Name" value={form.name} onChange={v => set("name", v)} placeholder="Blossom Book House" />
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", color: "#9CA3AF", fontSize: 12, fontWeight: 600, marginBottom: 6, letterSpacing: "0.05em" }}>CATEGORY</label>
+              <select value={form.category} onChange={e => set("category", e.target.value)} style={{ width: "100%", padding: "10px 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "#fff", fontSize: 14, fontFamily: "inherit", outline: "none" }}>
+                <option value="">Select category</option>
+                {["Café", "Bookstore", "Guide", "Adventure", "Workshop", "Restaurant", "Artisan", "Music", "Photography"].map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <Input label="Phone" value={form.phone} onChange={v => set("phone", v)} type="tel" placeholder="+91 98765 43210" />
+            <Input label="Business Address" value={form.address} onChange={v => set("address", v)} placeholder="42 Church Street, Bengaluru" />
+            <Btn onClick={() => setStep(1)} disabled={!form.name || !form.category || !form.phone}>Next: KYC →</Btn>
+          </Motion>
+        )}
+        {step === 1 && (
+          <Motion show>
+            <h3 style={{ color: "#fff", fontWeight: 700, margin: "0 0 20px" }}>KYC Verification</h3>
+            <Input label="PAN Number" value={form.pan} onChange={v => set("pan", v)} placeholder="ABCDE1234F" />
+            <Input label="GST Number (optional)" value={form.gst} onChange={v => set("gst", v)} placeholder="27ABCDE1234F1Z5" />
+            <div style={{ background: "rgba(255,107,53,0.08)", borderRadius: 12, padding: "14px 16px", marginBottom: 20, color: "#9CA3AF", fontSize: 13 }}>
+              🔒 PAN details encrypted and verified via NSDL API. GST required for transactions above ₹40L/year.
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Btn variant="secondary" onClick={() => setStep(0)}>← Back</Btn>
+              <Btn onClick={() => setStep(2)} disabled={!form.pan}>Next: Profile →</Btn>
+            </div>
+          </Motion>
+        )}
+        {step === 2 && (
+          <Motion show>
+            <h3 style={{ color: "#fff", fontWeight: 700, margin: "0 0 20px" }}>Business Profile</h3>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", color: "#9CA3AF", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>BIO / DESCRIPTION</label>
+              <textarea value={form.bio} onChange={e => set("bio", e.target.value)} placeholder="Tell visitors what makes you unique..." style={{ width: "100%", padding: "10px 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "#fff", fontSize: 14, fontFamily: "inherit", outline: "none", minHeight: 100, resize: "vertical", boxSizing: "border-box" }} />
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
+              <div style={{ color: "#fff", fontWeight: 600, marginBottom: 8, fontSize: 14 }}>Commission Structure</div>
+              {[["Experiences", "12%"], ["Products", "10%"], ["Events", "8%"], ["Adventure", "15%"]].map(([k, v]) => (
+                <div key={k} style={{ display: "flex", justifyContent: "space-between", color: "#9CA3AF", fontSize: 13, marginBottom: 4 }}>
+                  <span>{k}</span><span style={{ color: "#00C9A7" }}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Btn variant="secondary" onClick={() => setStep(1)}>← Back</Btn>
+              <Btn onClick={() => setStep(3)}>Review Application →</Btn>
+            </div>
+          </Motion>
+        )}
+        {step === 3 && (
+          <Motion show>
+            <h3 style={{ color: "#fff", fontWeight: 700, margin: "0 0 20px" }}>Review & Submit</h3>
+            {[["Name", form.name], ["Category", form.category], ["Phone", form.phone], ["PAN", form.pan]].map(([k, v]) => (
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", color: "#9CA3AF", fontSize: 14 }}>
+                <span>{k}</span><span style={{ color: "#fff" }}>{v || "—"}</span>
+              </div>
+            ))}
+            <div style={{ background: "rgba(0,201,167,0.08)", borderRadius: 12, padding: "14px 16px", margin: "20px 0", color: "#9CA3AF", fontSize: 13 }}>
+              ✓ KYC Submission · ✓ Background Check Initiated · Test payout (₹1) in 2 business days
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Btn variant="secondary" onClick={() => setStep(2)}>← Back</Btn>
+              <Btn onClick={submit} disabled={submitting} size="lg">{submitting ? "Submitting..." : "Submit Application"}</Btn>
+            </div>
+          </Motion>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── NAVBAR ───────────────────────────────────────────────────────────────────
+function Navbar({ nav, currentPage, cartCount }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const navLinks = [
+    { label: "Home", page: "home" },
+    { label: "Explore", page: "explore" },
+    { label: "Church St", page: "location", locationId: "church-street" },
+    { label: "Vendor", page: "vendor-onboard" },
+    { label: "Portal", page: "vendor-portal" },
+  ];
+
+  return (
+    <nav style={{ position: "sticky", top: 0, zIndex: 500, background: "rgba(13,5,33,0.92)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "0 24px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", height: 64, gap: 24 }}>
+        {/* Logo */}
+        <div onClick={() => nav({ page: "home" })} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg, #FF6B35, #FF8C5A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🌏</div>
+          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 18, color: "#fff" }}>TrueLocal</span>
+        </div>
+
+        {/* Links */}
+        <div style={{ display: "flex", gap: 4, flex: 1, justifyContent: "center" }}>
+          {navLinks.map(link => (
+            <button key={link.label} onClick={() => nav(link)} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "transparent", color: "#9CA3AF", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, transition: "all 200ms" }} onMouseEnter={e => { e.target.style.color = "#fff"; e.target.style.background = "rgba(255,255,255,0.06)"; }} onMouseLeave={e => { e.target.style.color = "#9CA3AF"; e.target.style.background = "transparent"; }}>
+              {link.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Right */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
+          <button onClick={() => nav({ page: "student" })} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(0,201,167,0.3)", background: "rgba(0,201,167,0.08)", color: "#00C9A7", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>🎓 Student</button>
+          <button onClick={() => nav({ page: "cart" })} style={{ position: "relative", padding: "8px 16px", borderRadius: 10, border: "1px solid rgba(255,107,53,0.3)", background: "rgba(255,107,53,0.1)", color: "#FF6B35", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 6 }}>
+            🛒
+            {cartCount > 0 && <span style={{ background: "#FF6B35", color: "#fff", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{cartCount}</span>}
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
+export default function TrueLocal() {
+  const [page, setPage] = useState({ page: "home" });
+  const [toasts, setToasts] = useState([]);
+  const [studentMode, setStudentMode] = useState(false);
+  const { cart } = useCart();
+
+  const addToast = useCallback((msg) => {
+    const id = Date.now();
+    setToasts(t => [...t, { ...msg, id }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500);
+  }, []);
+
+  const nav = useCallback((target) => { setPage(target); window.scrollTo({ top: 0, behavior: "smooth" }); }, []);
+
+  const renderPage = () => {
+    switch (page.page) {
+      case "home": return <HomePage nav={nav} studentMode={studentMode} />;
+      case "explore": return <ExplorePage nav={nav} addToast={addToast} studentMode={studentMode} />;
+      case "location": return <LocationPage locationId={page.locationId} nav={nav} addToast={addToast} studentMode={studentMode} />;
+      case "listing": return <ListingDetailPage listingId={page.listingId} nav={nav} addToast={addToast} studentMode={studentMode} />;
+      case "vendor": return <VendorPage vendorId={page.vendorId} nav={nav} addToast={addToast} studentMode={studentMode} />;
+      case "cart": return <CartPage nav={nav} addToast={addToast} studentMode={studentMode} />;
+      case "checkout": return <CheckoutPage total={page.total} nav={nav} addToast={addToast} />;
+      case "vendor-portal": return <VendorPortalPage nav={nav} addToast={addToast} />;
+      case "vendor-onboard": return <VendorOnboardingPage nav={nav} addToast={addToast} />;
+      case "student": return <StudentPage nav={nav} addToast={addToast} />;
+      case "itinerary": return <ItineraryPage nav={nav} addToast={addToast} />;
+      default: return <HomePage nav={nav} studentMode={studentMode} />;
+    }
+  };
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@400;500;600;700;800&display=swap');
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #0D0521; font-family: 'DM Sans', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0D0521; } ::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.4); border-radius: 3px; }
+        @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.6; transform:scale(1.15); } }
+        @keyframes bounce { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+        input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); }
+        select option { background: #1A0A2E; color: #fff; }
+      `}</style>
+      <div style={{ minHeight: "100vh", background: "#0D0521", color: "#fff" }}>
+        <Navbar nav={nav} currentPage={page.page} cartCount={cart.length} />
+        {renderPage()}
+        <Toast messages={toasts} removeToast={(id) => setToasts(t => t.filter(x => x.id !== id))} />
+        {/* Footer */}
+        <footer style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "40px 24px", background: "rgba(0,0,0,0.4)" }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 24 }}>
+            <div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 20, color: "#fff", marginBottom: 8 }}>🌏 TrueLocal</div>
+              <div style={{ color: "#6B7280", fontSize: 13 }}>Community-first tourism marketplace for Bengaluru</div>
+            </div>
+            <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+              {[["Explore", ["Home", "All Experiences", "Church Street", "Nandi Hills"]], ["Vendors", ["Become a Vendor", "Vendor Portal", "Pricing", "KYC"]], ["Info", ["Student Discounts", "Safety Policy", "Refund Policy", "Privacy"]]].map(([title, links]) => (
+                <div key={title}>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, marginBottom: 12 }}>{title}</div>
+                  {links.map(l => <div key={l} style={{ color: "#6B7280", fontSize: 13, marginBottom: 6, cursor: "pointer" }}>{l}</div>)}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ maxWidth: 1200, margin: "24px auto 0", paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ color: "#4B5563", fontSize: 12 }}>© 2026 TrueLocal. Platform commission 8–18% · Payments by Razorpay + Stripe · GST compliant</div>
+            <div style={{ color: "#4B5563", fontSize: 12 }}>Proudly made for Bengaluru 🇮🇳</div>
+          </div>
+        </footer>
+      </div>
+    </>
+  );
+}
